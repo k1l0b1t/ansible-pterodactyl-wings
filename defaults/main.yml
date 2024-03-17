@@ -1,0 +1,4 @@
+---
+pterowings_ssl_letsencrypt: false
+pterowings_hostname: "pterodactyl-wings.local"
+pterowings_le_mail: "example@example.com"

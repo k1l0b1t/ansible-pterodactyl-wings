@@ -1,0 +1,75 @@
+---
+- name: Install required system packages
+  apt:
+    pkg:
+      - apt-transport-https
+      - ca-certificates
+      - curl
+      - software-properties-common
+      - python3-pip
+      - python3-virtualenv
+      - python3-setuptools
+    state: latest
+    update_cache: true
+
+- name: Add Docker GPG apt Key
+  apt_key:
+    url: https://download.docker.com/linux/ubuntu/gpg
+    state: present
+
+- name: Add Docker Repository
+  apt_repository:
+    repo: deb https://download.docker.com/linux/ubuntu jammy stable
+    state: present
+
+- name: Update apt and install docker-ce
+  apt:
+    name: docker-ce
+    state: latest
+    update_cache: true
+
+- name: Install Docker Module for Python
+  pip:
+    name: docker
+
+- name: make directory
+  file:
+    path: /etc/pterodactyl
+    state: directory
+
+- name: Download wings
+  get_url:
+    url: "https://github.com/pterodactyl/wings/releases/latest/download/wings_linux_amd64"
+    dest: /usr/local/bin/wings
+
+- name: Make wings executable
+  file:
+    path: /usr/local/bin/wings
+    mode: 0755
+
+- name: add service
+  template:
+    src: wings.service.j2
+    dest: /etc/systemd/system/wings.service
+    owner: root
+    group: root
+    mode: 0644
+
+- name: enable and start wings
+  systemd:
+    name: wings
+    enabled: yes
+    state: started
+    daemon_reload: yes
+  become: yes
+
+- name: install certbot
+  apt:
+    name: certbot
+    state: latest
+    update_cache: true
+  when: pterowings_ssl_letsencrypt == true
+
+- name: Get SSL certificate
+  command: certbot certonly --standalone --agree-tos --no-eff-email --email {{ pterowings_le_mail }} -d {{ pterowings_hostname }}
+  when: pterowings_ssl_letsencrypt == true
